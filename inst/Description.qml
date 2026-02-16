@@ -17,7 +17,7 @@ Description
 
 	GroupTitle
 	{
-		title:	qsTr("Basic interactivity")
+		title:	qsTr("Basic interactivity, Test")
 	}
 
 	Analysis
