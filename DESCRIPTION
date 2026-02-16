@@ -1,19 +1,21 @@
-Package: jaspModuleTemplate
+Package: AhabsHarpoon
 Type: Package
-Title: A module for JASP
+Title: JASP Module for detecting type I errors with approximate objective Bayes factors.
 Version: 0.1.0
 Date: 2020-10-15
-Author: JASP Team
-Website: jasp-stats.org
-Maintainer: JASP Team <info@jasp-stats.org>
+Author: Nathoo Group
+Website: nathoogroup.ca
+Maintainer: Evan Strasdin <evanastrasdin@uvic.ca>
 Description: Example module showing basic functionality. Use it for inspiration when creating your own module.
 License: GPL (>= 2)
 Encoding: UTF-8
 Imports:
   jaspBase,
-  jaspGraphs
+  jaspGraphs,
+  ejabT1E
 Suggests:
   testthat
 Remotes:
   jasp-stats/jaspBase,
-  jasp-stats/jaspGraphs
+  jasp-stats/jaspGraphs,
+  nathoogroup/ejabT1E/ejabT1E
