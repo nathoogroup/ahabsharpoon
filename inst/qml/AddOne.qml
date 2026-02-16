@@ -40,19 +40,19 @@ Form
 
   Text
   {
-      text: qsTr("This example shows how to manually introduce an input and perform a simple operation on it")
+      text: qsTr("This example shows how to manually introduce an input and perform a simple operation on it ")
   }
 
 	IntegerField
 	{
-		info: qsTr("This is the number that will be used in the operation")
+		info: qsTr("$p$-value is $\sim \mathrm{Uniform}(0,u_{p})$ under $H_0$.")
 
 		name: "my_number"              // This will map to options$my_number in R
 		label: qsTr("Type a number")   // qsTr allows for future translations
 
 		// We can add some extra control parameters
-		min: 1
-		defaultValue: 10
+		min: 0
+		defaultValue: 0.1
 		fieldWidth: 50
 		max: 1000
 	}

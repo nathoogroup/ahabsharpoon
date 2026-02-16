@@ -3,15 +3,15 @@ import JASP.Module
 
 Description
 {
-	name		: "jaspModuleTemplate"
-	title		: qsTr("Jasp Module")
-	description	: qsTr("Examples for module builders")
+	name		: "AhabsHarpoon"
+	title		: qsTr("Ahab's Harpoon")
+	description	: qsTr("Detecting type I errors using Bayes-frequentist contradictions")
 	version		: "0.1"
 	author		: "JASP Team"
 	maintainer	: "JASP Team <info@jasp-stats.org>"
 	website		: "https://jasp-stats.org"
 	license		: "GPL (>= 2)"
-	icon        : "exampleIcon.png" // Located in /inst/icons/
+	icon        : "harpoon.png" // Located in /inst/icons/
 	preloadData: true
 	requiresData: true
 
@@ -39,28 +39,16 @@ Description
 
 	GroupTitle
 	{
-		title:	qsTr("Basic functions")
+		title:	qsTr("Detecting type I errors")
 	}
 
 	Analysis
 	{
-	  title: qsTr("Add one")        // Title for window
-	  menu: qsTr("Add one")         // Title for ribbon
+	  title: qsTr("Analyze")        // Title for window
+	  menu: qsTr("Analyze")         // Title for ribbon
 	  func: "addOne"                // Function to be called
     qml: "AddOne.qml"            // Design input window
 	  requiresData: false           // Allow to run even without data
 	}
 
-	GroupTitle
-	{
-	  title: qsTr("Plotting")
-	}
-
-	Analysis
-	{
-	  title: qsTr("Plot a parabola")
-	  func: "parabola"
-	  qml: "Parabola.qml"
-	  requiresData: false
-	}
 }

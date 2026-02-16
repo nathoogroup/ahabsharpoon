@@ -35,17 +35,25 @@ Form
     AvailableVariablesList { name: "allVariables" }
 
     AssignedVariablesList  {
-      name: "ts"
-      label: qsTr("Times (t)")
+      name: "p"
+      label: qsTr("p-value")
       info: qsTr("This info entry adds documentation to the (i) icon in the analysis file. E.g., Specify variable containing the time.")
       singleVariable: true
       allowedColumns: ["scale"]
     }
 
     AssignedVariablesList  {
-      name: "xs"
-      label: qsTr("Positions (x)")
+      name: "q"
+      label: qsTr("Test Dimension")
       info: qsTr("This info entry adds documentation to the (i) icon in the analysis file. E.g., Specify variable containing the positions.")
+      singleVariable: true
+      allowedColumns: ["scale"]
+    }
+
+    AssignedVariablesList  {
+      name: "n"
+      label: qsTr("Sample Size")
+      info: qsTr("This info entry adds documentation to the (i) icon in the analysis file. E.g., Specify variable containing the time.")
       singleVariable: true
       allowedColumns: ["scale"]
     }
