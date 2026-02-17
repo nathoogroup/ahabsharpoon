@@ -17,5 +17,4 @@ Suggests:
   testthat
 Remotes:
   jasp-stats/jaspBase,
-  jasp-stats/jaspGraphs,
-  nathoogroup/ejabT1E/ejabT1E
+  jasp-stats/jaspGraphs
