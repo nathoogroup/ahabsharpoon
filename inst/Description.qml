@@ -44,6 +44,14 @@ Description
 
 	Analysis
 	{
+	  title: qsTr("eJAB Analysis")
+	  menu: qsTr("eJAB Analysis")
+	  func: "ejabAnalysis"
+	  qml: "EjabAnalysis.qml"
+	}
+
+	Analysis
+	{
 	  title: qsTr("Analyze")        // Title for window
 	  menu: qsTr("Analyze")         // Title for ribbon
 	  func: "addOne"                // Function to be called
