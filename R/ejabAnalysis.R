@@ -69,19 +69,21 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
 
   # Diagnostic QQ-plot
   if (is.null(jaspResults[["qqPlot"]])) {
-    qqPlot <- createJaspPlot(title = gettext("Diagnostic QQ-Plot"),
-                              width = 480, height = 400)
-    qqPlot$dependOn(c("p", "n", "q"))
-
     if (length(candidates_idx) > 0) {
       U <- ejabT1E::diagnostic_U(p_vals[candidates_idx], n_vals[candidates_idx],
                                   q_vals[candidates_idx], alpha, fit$Cstar)
-      qq_result <- ejabT1E::diagnostic_qqplot(U, alpha = alpha, Cstar = fit$Cstar)
-      qqPlot$plotObject <- qq_result$plot
+      plotFun <- function() {
+        ejabT1E::diagnostic_qqplot(U, alpha = alpha, Cstar = fit$Cstar)
+      }
+      qqPlot <- createJaspPlot(plot = plotFun,
+                                title = gettext("Diagnostic QQ-Plot"),
+                                width = 480, height = 400)
     } else {
+      qqPlot <- createJaspPlot(title = gettext("Diagnostic QQ-Plot"),
+                                width = 480, height = 400)
       qqPlot$setError(gettext("No candidate Type I errors detected; cannot produce QQ-plot."))
     }
-
+    qqPlot$dependOn(c("p", "n", "q"))
     jaspResults[["qqPlot"]] <- qqPlot
   }
 }

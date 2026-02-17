@@ -11,31 +11,9 @@ Description
 	maintainer	: "JASP Team <info@jasp-stats.org>"
 	website		: "https://jasp-stats.org"
 	license		: "GPL (>= 2)"
-	icon        : "harpoon.png" // Located in /inst/icons/
+	icon        : "harpoon.png"
 	preloadData: true
 	requiresData: true
-
-	GroupTitle
-	{
-		title:	qsTr("Basic interactivity")
-	}
-
-	Analysis
-	{
-		title: qsTr("Using the interface") // Title for window
-		menu: qsTr("Using the interface")  // Title for ribbon
-		func: "interfaceExample"           // Function to be called
-		qml: "Interface.qml"               // Design input window
-		requiresData: false                // Allow to run even without data
-	}
-
-	Analysis
-	{
-	  title: qsTr("Loading data")
-	  menu: qsTr("Loading data")
-	  func: "processTable"
-	  qml: "LoadingData.qml"
-	}
 
 	GroupTitle
 	{
@@ -49,14 +27,4 @@ Description
 	  func: "ejabAnalysis"
 	  qml: "EjabAnalysis.qml"
 	}
-
-	Analysis
-	{
-	  title: qsTr("Analyze")        // Title for window
-	  menu: qsTr("Analyze")         // Title for ribbon
-	  func: "addOne"                // Function to be called
-    qml: "AddOne.qml"            // Design input window
-	  requiresData: false           // Allow to run even without data
-	}
-
 }

@@ -1,7 +1,3 @@
 import(jaspBase)
 import(ejabT1E)
-export(addOne)
-export(processTable)
-export(parabola)
-export(interfaceExample)
 export(ejabAnalysis)
