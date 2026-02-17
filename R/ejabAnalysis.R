@@ -42,4 +42,28 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
 
     jaspResults[["summaryTable"]] <- tbl
   }
+
+  # Candidates table
+  if (is.null(jaspResults[["candidatesTable"]])) {
+    ctbl <- createJaspTable(gettext("Candidate Type I Errors"))
+    ctbl$dependOn(c("p", "n", "q"))
+
+    ctbl$addColumnInfo(name = "row",   title = gettext("Row"),       type = "integer")
+    ctbl$addColumnInfo(name = "pval",  title = gettext("p-value"),   type = "number")
+    ctbl$addColumnInfo(name = "nval",  title = gettext("n"),         type = "integer")
+    ctbl$addColumnInfo(name = "qval",  title = gettext("q"),         type = "integer")
+    ctbl$addColumnInfo(name = "ejab",  title = gettext("eJAB01"),    type = "number")
+
+    if (length(candidates_idx) > 0) {
+      ctbl[["row"]]  <- candidates_idx
+      ctbl[["pval"]] <- p_vals[candidates_idx]
+      ctbl[["nval"]] <- n_vals[candidates_idx]
+      ctbl[["qval"]] <- q_vals[candidates_idx]
+      ctbl[["ejab"]] <- ejab_vals[candidates_idx]
+    } else {
+      ctbl$addFootnote(gettext("No candidate Type I errors detected."))
+    }
+
+    jaspResults[["candidatesTable"]] <- ctbl
+  }
 }
