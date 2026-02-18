@@ -12,7 +12,8 @@ Encoding: UTF-8
 Imports:
   jaspBase,
   jaspGraphs,
-  ejabT1E
+  ejabT1E,
+  ggplot2
 Suggests:
   testthat
 Remotes:
