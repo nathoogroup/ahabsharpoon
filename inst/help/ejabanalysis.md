@@ -58,7 +58,7 @@ A scatterplot of $\ln(\text{eJAB01})$ against p-value for results with $p < \alp
 
 ### References
 -------
-- Nathoo, F. S., Velidi, P., Wei, Z., & Strasdin, E. (2026). *Detecting Type I errors through Bayes/NHST conflict using eJAB*. Unpublished manuscript.
+- Nathoo, F. S., Velidi, P., Wei, Z., & Strasdin, E. (2026). *Detecting Type I errors through Bayes/NHST conflict using eJAB*.
 - Open Science Collaboration (2015). Estimating the reproducibility of psychological science. *Science*, 349(6251), aac4716.
 
 ### R-packages
