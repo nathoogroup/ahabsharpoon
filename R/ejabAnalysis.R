@@ -44,49 +44,53 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
   candidates_idx <- ejabT1E::detect_type1(p_vals, ejab_vals, alpha, Cstar_at_alpha)
 
   # Summary table
-  if (is.null(jaspResults[["summaryTable"]])) {
-    tbl <- createJaspTable(gettext("eJAB Summary"))
-    tbl$dependOn(c("p", "n", "q", "study_nums", "alpha", "up", "lowerBound", "upperBound", "grid_size"))
+  if (is.null(jaspResults[["summaryContainer"]])) {
+    summaryContainer <- createJaspContainer(gettext("eJAB Summary"))
+    summaryContainer$dependOn(c("p", "n", "q", "study_nums", "alpha", "up", "lowerBound", "upperBound", "grid_size"))
 
-    tbl$addColumnInfo(name = "cstar",      title = gettext("C*(α)"),          type = "number")
-    tbl$addColumnInfo(name = "objective",   title = gettext("Objective"),   type = "number")
-    tbl$addColumnInfo(name = "candidates",  title = gettext("Candidates"),  type = "integer")
-    tbl$addColumnInfo(name = "total",       title = gettext("Total"),       type = "integer")
+    tbl <- createJaspTable()
+    tbl$addColumnInfo(name = "cstar",      title = gettext("C*(α)"),       type = "number")
+    tbl$addColumnInfo(name = "objective",  title = gettext("Objective"),   type = "number")
+    tbl$addColumnInfo(name = "candidates", title = gettext("Candidates"),  type = "integer")
+    tbl$addColumnInfo(name = "total",      title = gettext("Total"),       type = "integer")
 
-    tbl[["cstar"]]     <- Cstar_at_alpha
+    tbl[["cstar"]]      <- Cstar_at_alpha
     tbl[["objective"]]  <- objective_at_alpha
     tbl[["candidates"]] <- length(candidates_idx)
     tbl[["total"]]      <- length(p_vals)
-    
-    # Add footnote explaining C*(α)
-    tbl$addFootnote(gettextf("C*(α) is the C* value corresponding to the selected α = %s", alpha), 
+
+    tbl$addFootnote(gettextf("C*(α) is the C* value corresponding to the selected α = %s", alpha),
                     colNames = "cstar")
 
-    jaspResults[["summaryTable"]] <- tbl
+    summaryContainer[["table"]] <- tbl
+    jaspResults[["summaryContainer"]] <- summaryContainer
   }
 
   # Candidates table
-  if (is.null(jaspResults[["candidatesTable"]])) {
-    ctbl <- createJaspTable(gettext("Candidate Type I Errors"))
-    ctbl$dependOn(c("p", "n", "q", "study_nums", "alpha", "up", "lowerBound", "upperBound", "grid_size"))
+  if (is.null(jaspResults[["candidatesContainer"]])) {
+    candidatesContainer <- createJaspContainer(gettext("Candidate Type I Errors"))
+    candidatesContainer$dependOn(c("p", "n", "q", "study_nums", "alpha", "up", "lowerBound", "upperBound", "grid_size"))
 
-    ctbl$addColumnInfo(name = "row",   title = gettext("Row"),       type = "integer")
-    ctbl$addColumnInfo(name = "pval",  title = gettext("p-value"),   type = "number")
-    ctbl$addColumnInfo(name = "nval",  title = gettext("n"),         type = "integer")
-    ctbl$addColumnInfo(name = "qval",  title = gettext("q"),         type = "integer")
-    ctbl$addColumnInfo(name = "ejab",  title = gettext("eJAB01"),    type = "number")
+    ctbl <- createJaspTable()
+
+    ctbl$addColumnInfo(name = "study",  title = gettext("Study ID"),  type = "string")
+    ctbl$addColumnInfo(name = "pval",   title = gettext("p-value"),   type = "number")
+    ctbl$addColumnInfo(name = "nval",   title = gettext("n"),         type = "integer")
+    ctbl$addColumnInfo(name = "qval",   title = gettext("q"),         type = "integer")
+    ctbl$addColumnInfo(name = "ejab",   title = gettext("eJAB01"),    type = "number")
 
     if (length(candidates_idx) > 0) {
-      ctbl[["row"]]  <- candidates_idx
-      ctbl[["pval"]] <- p_vals[candidates_idx]
-      ctbl[["nval"]] <- n_vals[candidates_idx]
-      ctbl[["qval"]] <- q_vals[candidates_idx]
-      ctbl[["ejab"]] <- ejab_vals[candidates_idx]
+      ctbl[["study"]] <- as.character(study_num[candidates_idx])
+      ctbl[["pval"]]  <- p_vals[candidates_idx]
+      ctbl[["nval"]]  <- n_vals[candidates_idx]
+      ctbl[["qval"]]  <- q_vals[candidates_idx]
+      ctbl[["ejab"]]  <- ejab_vals[candidates_idx]
     } else {
       ctbl$addFootnote(gettext("No candidate Type I errors detected."))
     }
 
-    jaspResults[["candidatesTable"]] <- ctbl
+    candidatesContainer[["table"]] <- ctbl
+    jaspResults[["candidatesContainer"]] <- candidatesContainer
   }
 
   allDeps <- c("p", "n", "q", "study_nums", "up", "alpha",

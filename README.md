@@ -1,33 +1,39 @@
-# jaspModuleTemplate
+# Ahab's Harpoon
 
-This template repository contains example functionality, which makes it an excellent starting point for developing a new JASP module.
-It contains the necessary files and structure, plus a numbers of examples to get started and to understand JASP's internals.
+A JASP module for detecting candidate Type I errors in collections of hypothesis test results using Bayes-frequentist contradictions.
 
-## How to use this repository
+## What it does
 
-1. Fork this template repository to your own GitHub account
-2. Clone it to your machine
-3. Open JASP and add it as a development module
+The module identifies results where frequentist and Bayesian evidence point in opposite directions: the p-value leads to rejecting H0, but the approximate objective Bayes factor (eJAB01) indicates the data actually support H0. Such contradictions are flagged as candidate Type I errors.
 
-### For newcomers
+For each result the module:
+1. Computes the eJAB01 Bayes factor from the p-value, sample size, and test dimension
+2. Estimates an optimal threshold C*(α) via a calibrated grid search
+3. Flags any result with p < α and eJAB01 > C*(α) as a candidate Type I error
+4. Produces calibration plots, a diagnostic QQ-plot, and a data summary plot
 
-It is very illuminating to take a look at our examples **and** at the files that generate them.
+## Input data
 
-For instance, the image below shows the different menus for the _"Using the interface"_ analysis, together with the files that generate them:
+Each row should represent one hypothesis test result with columns for:
+- **p-value** — the observed p-value (strictly between 0 and 1)
+- **n** — sample size (> 1)
+- **q** — test dimension (number of parameters tested; ≥ 1)
+- **Study ID** — an identifier for each result
 
-![](inst/img/JASP.png)
+An example dataset (the Reproducibility Project: Psychology) is included as `inst/data/rpp_data.csv`.
 
-### For contributors
+## Usage
 
-Feel free to reuse and adapt to your needs.
-Feel also free to remove the ones you don't need.
-
-## Contributing back new module to JASP
-
-Once you have developed your module, you can contribute it back to JASP by creating a pull request.
-The JASP team will review your module and provide feedback.
-Once your module is accepted, a new repo is created in the JASP organization and your module is added to the JASP module repository.
+1. Open JASP and load the module as a development module
+2. Load your dataset (or open `rpp_analysis.jasp` for a pre-configured example)
+3. Open **Ahab's Harpoon → eJAB Analysis**
+4. Assign your p-value, sample size, test dimension, and study ID columns
+5. Adjust α and other parameters as needed
 
 ## Reference
 
-[Tutorial: Development of a JASP module](https://github.com/jasp-stats/jasp-desktop/blob/development/Docs/development/jasp-modules-tutorial.md)
+Nathoo, F. S., Velidi, P., Wei, Z., & Strasdin, E. (2026). *Detecting Type I errors through Bayes/NHST conflict using eJAB*. Unpublished manuscript.
+
+## License
+
+GPL (>= 2)

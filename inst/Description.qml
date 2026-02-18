@@ -7,9 +7,9 @@ Description
 	title		: qsTr("Ahab's Harpoon")
 	description	: qsTr("Detecting type I errors using Bayes-frequentist contradictions")
 	version		: "0.1"
-	author		: "JASP Team"
-	maintainer	: "JASP Team <info@jasp-stats.org>"
-	website		: "https://jasp-stats.org"
+	author		: "Farouk Nathoo, Puneet Velidi, Zhengxiao Wei, Evan Strasdin"
+	maintainer	: "Evan Strasdin <evn.strsdn@pm.me>"
+	website		: "https://github.com/nathoogroup/ahabsharpoon"
 	license		: "GPL (>= 2)"
 	icon        : "harpoon.png"
 	preloadData: true
