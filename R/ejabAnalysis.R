@@ -1,16 +1,19 @@
 ejabAnalysis <- function(jaspResults, dataset, options) {
 
   # Check if required variables are assigned
-  if (length(options$p) == 0 || options$p == "" || 
-      length(options$n) == 0 || options$n == "" || 
-      length(options$q) == 0 || options$q == "" || 
+  if (length(options$p) == 0 || options$p == "" ||
+      length(options$n) == 0 || options$n == "" ||
+      length(options$q) == 0 || options$q == "" ||
       length(options$study_nums) == 0 || options$study_nums == "")
     return()
 
-  # Read data
+  # Read data. n and q accept ordinal columns (see inst/qml/EjabAnalysis.qml);
+  # JASP delivers ordinal data as a factor, so coerce through as.character() to
+  # recover the numeric labels rather than the factor level codes.
+  asNumericCol <- function(x) if (is.factor(x)) as.numeric(as.character(x)) else as.numeric(x)
   p_vals    <- dataset[[options$p]]
-  n_vals    <- dataset[[options$n]]
-  q_vals    <- dataset[[options$q]]
+  n_vals    <- asNumericCol(dataset[[options$n]])
+  q_vals    <- asNumericCol(dataset[[options$q]])
   study_num <- dataset[[options$study_nums]]
   complete_cases <- complete.cases(p_vals, n_vals, q_vals, study_num) &
                    p_vals > 0 & p_vals < 1 &
@@ -64,9 +67,6 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
     tbl[["candidates"]] <- length(candidates_idx)
     tbl[["total"]]      <- length(p_vals)
 
-    tbl$addFootnote(gettextf("C*(α) is the C* value corresponding to the selected α = %s", alpha),
-                    colNames = "cstar")
-
     summaryContainer[["table"]] <- tbl
     jaspResults[["summaryContainer"]] <- summaryContainer
   }
@@ -78,18 +78,34 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
 
     ctbl <- createJaspTable()
 
-    ctbl$addColumnInfo(name = "study",  title = gettext("Study ID"),  type = "string")
-    ctbl$addColumnInfo(name = "pval",   title = gettext("p-value"),   type = "number")
-    ctbl$addColumnInfo(name = "nval",   title = gettext("n"),         type = "integer")
-    ctbl$addColumnInfo(name = "qval",   title = gettext("q"),         type = "integer")
-    ctbl$addColumnInfo(name = "ejab",   title = gettext("eJAB01"),    type = "number")
+    ctbl$addColumnInfo(name = "study",   title = gettext("Study ID"),   type = "string")
+    ctbl$addColumnInfo(name = "pval",    title = gettext("p-value"),    type = "number")
+    ctbl$addColumnInfo(name = "nval",    title = gettext("n"),          type = "integer")
+    ctbl$addColumnInfo(name = "qval",    title = gettext("q"),          type = "integer")
+    ctbl$addColumnInfo(name = "ejab",    title = gettext("eJAB01"),     type = "number")
+    ctbl$addColumnInfo(name = "ejab10",  title = gettext("eJAB10"),     type = "number")
+    ctbl$addColumnInfo(name = "z",       title = gettext("Z"),          type = "number")
+    ctbl$addColumnInfo(name = "flagged", title = gettext("Outside ±2"), type = "string")
 
     if (length(candidates_idx) > 0) {
-      ctbl[["study"]] <- as.character(study_num[candidates_idx])
-      ctbl[["pval"]]  <- p_vals[candidates_idx]
-      ctbl[["nval"]]  <- n_vals[candidates_idx]
-      ctbl[["qval"]]  <- q_vals[candidates_idx]
-      ctbl[["ejab"]]  <- ejab_vals[candidates_idx]
+      # Per-candidate Z diagnostic: Z = qnorm(U) is N(0,1) under left-tail
+      # uniformity. |Z| > 2 (or U at exactly 0/1, which gives a non-finite Z)
+      # puts the candidate outside the ±2 bands and flags it as a likely
+      # non-Type-I-error. Matches the red points in the Z-diagnostic plots.
+      U_cand    <- diagnostic_U(p_vals[candidates_idx], n_vals[candidates_idx],
+                                q_vals[candidates_idx], alpha, Cstar_at_alpha)
+      Z_cand    <- stats::qnorm(U_cand)
+      flag_cand <- !is.finite(Z_cand) | abs(Z_cand) > 2
+      Z_cand[!is.finite(Z_cand)] <- NA_real_
+
+      ctbl[["study"]]   <- as.character(study_num[candidates_idx])
+      ctbl[["pval"]]    <- p_vals[candidates_idx]
+      ctbl[["nval"]]    <- n_vals[candidates_idx]
+      ctbl[["qval"]]    <- q_vals[candidates_idx]
+      ctbl[["ejab"]]    <- ejab_vals[candidates_idx]
+      ctbl[["ejab10"]]  <- 1 / ejab_vals[candidates_idx]
+      ctbl[["z"]]       <- Z_cand
+      ctbl[["flagged"]] <- ifelse(flag_cand, gettext("Yes"), gettext("No"))
     } else {
       ctbl$addFootnote(gettext("No candidate Type I errors detected."))
     }
@@ -100,174 +116,147 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
 
   allDeps <- c("p", "n", "q", "study_nums", "up", "alpha",
                "lowerBound", "upperBound", "grid_size",
-               "showCalibrationPlot", "showDataSummaryPlot")
+               "showCalibrationPlot", "showZDiagnostic")
 
-  # --- Calibration plots (3 separate JASP plots instead of par(mfrow)) ---
-  if (isTRUE(options$showCalibrationPlot)) {
+  # Axis tick formatter: whole numbers print without decimals, genuine
+  # decimals keep theirs with trailing zeros dropped (0 -> "0", 1 -> "1",
+  # 0.25 -> "0.25"). Applied to every plot scale so ggplot2 does not pad
+  # ticks to a common width (e.g. "0.00", "1.00").
+  fmtAxis <- function(x) {
+    # formatC right-justifies a vector to a common width; trimws strips that
+    # padding so each label stays centred on its own tick.
+    out <- trimws(formatC(x, format = "g", digits = 7))
+    out[is.na(x)] <- ""
+    out
+  }
 
-    # Plot 1: Calibration curve - observed proportion vs alpha
-    if (is.null(jaspResults[["calibrationCurve"]])) {
-      alpha_grid <- seq(0, up, length.out = 200)[-1]
-      N_cal <- sum(p_vals < up)
-      proportions <- vapply(alpha_grid, function(a)
-        sum(p_vals < a & ejab_vals > Cstar_at_alpha) / N_cal, numeric(1))
-      keep <- alpha_grid <= alpha
-      calDf <- data.frame(alpha = alpha_grid[keep], proportion = proportions[keep])
-      refDf <- data.frame(alpha = c(0, alpha), proportion = c(0, alpha / up))
+  # --- Calibration curve: observed contradiction proportion vs alpha ---
+  if (isTRUE(options$showCalibrationPlot) && is.null(jaspResults[["calibrationCurve"]])) {
+    alpha_grid <- seq(0, up, length.out = 200)[-1]
+    N_cal <- sum(p_vals < up)
+    proportions <- vapply(alpha_grid, function(a)
+      sum(p_vals <= a & ejab_vals > Cstar_at_alpha) / N_cal, numeric(1))
+    keep <- alpha_grid <= alpha
+    calDf <- data.frame(alpha = alpha_grid[keep], proportion = proportions[keep])
+    refDf <- data.frame(alpha = c(0, alpha), proportion = c(0, alpha / up))
 
-      p1 <- ggplot2::ggplot(calDf, ggplot2::aes(x = alpha, y = proportion)) +
-        ggplot2::geom_line(linewidth = 1) +
-        ggplot2::geom_line(data = refDf, linetype = "dashed", color = "red", linewidth = 1) +
-        ggplot2::scale_x_continuous(limits = c(0, alpha)) +
-        ggplot2::scale_y_continuous(limits = c(0, max(calDf$proportion, alpha / up) * 1.1)) +
-        ggplot2::labs(x = expression(alpha), y = "Observed Proportion",
-                      title = bquote("Calibration Curve (" ~ alpha <= .(alpha) ~ ")")) +
-        jaspGraphs::geom_rangeframe() +
-        jaspGraphs::themeJaspRaw()
+    p1 <- ggplot2::ggplot(calDf, ggplot2::aes(x = alpha, y = proportion)) +
+      ggplot2::geom_line(linewidth = 1) +
+      ggplot2::geom_line(data = refDf, linetype = "dashed", color = "grey60", linewidth = 1) +
+      ggplot2::scale_x_continuous(limits = c(0, alpha), labels = fmtAxis) +
+      ggplot2::scale_y_continuous(limits = c(0, max(calDf$proportion, alpha / up) * 1.1),
+                                  labels = fmtAxis) +
+      ggplot2::labs(x = expression(alpha), y = "Observed Proportion") +
+      jaspGraphs::geom_rangeframe() +
+      jaspGraphs::themeJaspRaw() +
+      ggplot2::theme(plot.margin = ggplot2::margin(5.5, 20, 5.5, 5.5))
 
-      calCurve <- createJaspPlot(plot = p1,
-                                  title = gettext("Calibration Curve"),
-                                  width = 480, height = 400)
-      calCurve$dependOn(allDeps)
-      jaspResults[["calibrationCurve"]] <- calCurve
+    calCurve <- createJaspPlot(plot = p1,
+                                title = gettextf("Calibration Curve (α ≤ %s)", alpha),
+                                width = 480, height = 400)
+    calCurve$dependOn(allDeps)
+    jaspResults[["calibrationCurve"]] <- calCurve
+  }
+
+  # --- Z-diagnostic plots (normal-score transform of the U diagnostic) ---
+  # The candidate diagnostic U is Unif(0,1) under the left-tail uniformity
+  # assumption, so Z = qnorm(U) is N(0,1). Z reads more easily: the normal
+  # QQ-plot needs no probability bands, and the index plot gets flat bands at
+  # -2 and +2 (about 95% of N(0,1) lies within). Candidates with |Z| > 2 fall
+  # outside the bands and are likely not Type I errors. See the source-of-truth
+  # script at RPackage/Scripts/z_diagnostic.R.
+  if (isTRUE(options$showZDiagnostic)) {
+
+    # Z is computed once and shared by both plots. qnorm(U) is +/-Inf when U is
+    # exactly 0 or 1 (diagnostic out of range); drop those few cases so the
+    # best-fit line and the index plot stay well defined.
+    if (length(candidates_idx) > 0) {
+      U <- diagnostic_U(p_vals[candidates_idx], n_vals[candidates_idx],
+                        q_vals[candidates_idx], alpha, Cstar_at_alpha)
+      Z <- stats::qnorm(U)
+      Z <- Z[is.finite(Z)]
+    } else {
+      Z <- numeric(0)
     }
+    n_z <- length(Z)
 
-    # Plot 2 (formerly C*(alpha) vs alpha) removed — not meaningful for integral method
+    # Plot 1: normal QQ-plot of Z (OLS best-fit line, no bands)
+    if (is.null(jaspResults[["zQqPlot"]])) {
+      zQqTitle <- gettextf("Z-Diagnostic Normal QQ-Plot (α = %s, C* = %s)",
+                           alpha, round(Cstar_at_alpha, 4))
+      if (n_z > 0) {
+        theoretical <- stats::qnorm(stats::ppoints(n_z))
+        observed    <- sort(Z)
 
-    # Plot 3: Diagnostic QQ-plot (logic from ejabT1E::diagnostic_qqplot)
-    if (is.null(jaspResults[["qqPlot"]])) {
-      if (length(candidates_idx) > 0) {
-        U <- diagnostic_U(p_vals[candidates_idx], n_vals[candidates_idx],
-                                    q_vals[candidates_idx], alpha, Cstar_at_alpha)
-        n_u      <- length(U)
-        theoretical <- stats::ppoints(n_u)
-        observed    <- sort(U)
-
-        # OLS best-fit line (C* is estimated, so 45-degree line is inappropriate)
+        # OLS best-fit line (C* is estimated, so the 45-degree line is inappropriate)
         fit_line <- stats::lm(observed ~ theoretical)
         int_ols  <- as.numeric(stats::coef(fit_line)[1])
         slp_ols  <- as.numeric(stats::coef(fit_line)[2])
 
-        qqDf <- data.frame(theoretical = theoretical, observed = observed)
+        qqDf <- data.frame(theoretical = theoretical, observed = observed,
+                           flagged = factor(abs(observed) > 2, levels = c(FALSE, TRUE)))
 
-        p3 <- ggplot2::ggplot(qqDf, ggplot2::aes(x = theoretical, y = observed)) +
-          ggplot2::geom_point(size = 1.5) +
+        pz1 <- ggplot2::ggplot(qqDf, ggplot2::aes(x = theoretical, y = observed)) +
           ggplot2::geom_abline(intercept = int_ols, slope = slp_ols,
-                               color = "red", linewidth = 1) +
-          ggplot2::labs(x = "Theoretical Unif(0,1) Quantiles",
-                        y = "Observed U_i Quantiles",
-                        title = paste0("Diagnostic QQ-Plot (alpha = ", alpha,
-                                       ", C* = ", round(Cstar_at_alpha, 4), ")")) +
+                               color = "grey60", linetype = "dashed", linewidth = 1) +
+          ggplot2::geom_point(ggplot2::aes(color = flagged), size = 1.5) +
+          ggplot2::scale_color_manual(name = NULL,
+                                      values = c(`FALSE` = "black", `TRUE` = "red"),
+                                      labels = c(`FALSE` = "within ±2", `TRUE` = "outside ±2"),
+                                      drop = FALSE) +
+          ggplot2::labs(x = "Theoretical N(0, 1) Quantiles",
+                        y = "Observed Z Quantiles") +
+          ggplot2::scale_x_continuous(labels = fmtAxis) +
+          ggplot2::scale_y_continuous(labels = fmtAxis) +
           jaspGraphs::geom_rangeframe() +
-          jaspGraphs::themeJaspRaw()
+          jaspGraphs::themeJaspRaw() +
+          ggplot2::theme(legend.position = "bottom",
+                         legend.text = ggplot2::element_text(margin = ggplot2::margin(r = 16, l = 2)),
+                         plot.margin = ggplot2::margin(5.5, 20, 5.5, 5.5))
 
-        # MC-calibrated simultaneous confidence band, transformed through OLS fit
-        if (n_u >= 2) {
-          set.seed(1)
-          B     <- 10000
-          i_seq <- seq_len(n_u)
-          U_sim <- apply(matrix(stats::runif(n_u * B), nrow = n_u, ncol = B), 2, sort)
-
-          coverage_hat <- function(p) {
-            tail <- (1 - p) / 2
-            L <- stats::qbeta(tail,     i_seq, n_u + 1 - i_seq)
-            U <- stats::qbeta(1 - tail, i_seq, n_u + 1 - i_seq)
-            mean(colSums(U_sim >= L & U_sim <= U) == n_u)
-          }
-          f <- function(p) coverage_hat(p) - 0.95
-          p_star <- if (f(0.95) >= 0) 0.95 else
-            stats::uniroot(f, lower = 0.95, upper = 0.9999, tol = 1e-4)$root
-
-          tail_star <- (1 - p_star) / 2
-          lower_raw <- stats::qbeta(tail_star,     i_seq, n_u + 1 - i_seq)
-          upper_raw <- stats::qbeta(1 - tail_star, i_seq, n_u + 1 - i_seq)
-
-          # Transform bands through OLS fit
-          lower <- int_ols + slp_ols * lower_raw
-          upper <- int_ols + slp_ols * upper_raw
-
-          bandDf <- data.frame(theoretical = theoretical, lower = lower, upper = upper)
-          p3 <- p3 +
-            ggplot2::geom_line(data = bandDf, ggplot2::aes(x = theoretical, y = lower),
-                               linetype = "dashed", color = "grey50") +
-            ggplot2::geom_line(data = bandDf, ggplot2::aes(x = theoretical, y = upper),
-                               linetype = "dashed", color = "grey50")
-        }
-
-        qqPlot <- createJaspPlot(plot = p3,
-                                  title = gettext("Diagnostic QQ-Plot"),
+        zQqPlot <- createJaspPlot(plot = pz1, title = zQqTitle,
                                   width = 480, height = 400)
       } else {
-        qqPlot <- createJaspPlot(title = gettext("Diagnostic QQ-Plot"),
-                                  width = 480, height = 400)
-        qqPlot$setError(gettext("No candidate Type I errors detected; cannot produce QQ-plot."))
+        zQqPlot <- createJaspPlot(title = zQqTitle, width = 480, height = 400)
+        zQqPlot$setError(gettext("No candidate Type I errors detected; cannot produce QQ-plot."))
       }
-      qqPlot$dependOn(allDeps)
-      jaspResults[["qqPlot"]] <- qqPlot
+      zQqPlot$dependOn(allDeps)
+      jaspResults[["zQqPlot"]] <- zQqPlot
     }
-  }
 
-  # --- Data summary plot (ggplot2 only, no cowplot) ---
-  if (isTRUE(options$showDataSummaryPlot) && is.null(jaspResults[["dataSummaryPlot"]])) {
-    if (length(p_vals) > 0) {
-      logJAB <- log(ejab_vals)
-      is_candidate <- (p_vals < alpha) & (ejab_vals > Cstar_at_alpha)
+    # Plot 2: Z vs candidate index, with flat reference bands at -2 and +2
+    if (is.null(jaspResults[["zIndexPlot"]])) {
+      zIndexTitle <- gettextf("Z-Diagnostic vs Index (α = %s)", alpha)
+      if (n_z > 0) {
+        idxDf <- data.frame(index = seq_len(n_z), Z = Z,
+                           flagged = factor(abs(Z) > 2, levels = c(FALSE, TRUE)))
+        yr    <- range(Z, -2.5, 2.5)
 
-      plotDf <- data.frame(pValue = p_vals, logJAB = logJAB,
-                           candidate = is_candidate)
+        pz2 <- ggplot2::ggplot(idxDf, ggplot2::aes(x = index, y = Z)) +
+          ggplot2::geom_hline(yintercept = c(-2, 2), linetype = "dashed",
+                              color = "grey60", linewidth = 1) +
+          ggplot2::geom_point(ggplot2::aes(color = flagged), size = 1.8) +
+          ggplot2::scale_color_manual(name = NULL,
+                                      values = c(`FALSE` = "black", `TRUE` = "red"),
+                                      labels = c(`FALSE` = "within ±2", `TRUE` = "outside ±2"),
+                                      drop = FALSE) +
+          ggplot2::labs(x = "Candidate Index", y = "Z Diagnostic") +
+          ggplot2::scale_x_continuous(labels = fmtAxis) +
+          ggplot2::scale_y_continuous(limits = yr, labels = fmtAxis) +
+          jaspGraphs::geom_rangeframe() +
+          jaspGraphs::themeJaspRaw() +
+          ggplot2::theme(legend.position = "bottom",
+                         legend.text = ggplot2::element_text(margin = ggplot2::margin(r = 16, l = 2)),
+                         plot.margin = ggplot2::margin(5.5, 20, 5.5, 5.5))
 
-      sig    <- p_vals < alpha
-      yr     <- range(c(logJAB[sig], log(Cstar_at_alpha)), finite = TRUE) + c(-0.5, 0.5)
-      ytrans <- scales::pseudo_log_trans(sigma = 1)
-      cand_breaks <- c(-1000, -300, -100, -30, -10, -5, -3, -2, -1, 0, 1, 2, 3, 5, 10)
-      ybreaks <- cand_breaks[cand_breaks >= yr[1] & cand_breaks <= yr[2]]
-
-      bands <- data.frame(
-        ymin = c(yr[1],    log(1/3), log(3)),
-        ymax = c(log(1/3), log(3),   yr[2]),
-        fill = c("green",  "grey80", "red")
-      )
-      bands <- bands[bands$ymax > yr[1] & bands$ymin < yr[2], , drop = FALSE]
-      bands$ymin <- pmax(bands$ymin, yr[1])
-      bands$ymax <- pmin(bands$ymax, yr[2])
-
-      p4 <- ggplot2::ggplot(plotDf, ggplot2::aes(x = pValue, y = logJAB)) +
-        ggplot2::geom_rect(data = bands,
-                           ggplot2::aes(xmin = 0, xmax = alpha, ymin = ymin, ymax = ymax, fill = fill),
-                           alpha = 0.15, inherit.aes = FALSE) +
-        ggplot2::scale_fill_identity() +
-        ggplot2::geom_point(ggplot2::aes(color = candidate), size = 1.5, show.legend = FALSE) +
-        ggplot2::scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "steelblue")) +
-        ggplot2::geom_vline(xintercept = alpha, linetype = "dashed") +
-        ggplot2::geom_hline(yintercept = log(1/3), linetype = "dashed", color = "grey40") +
-        ggplot2::geom_hline(yintercept = log(3),   linetype = "dashed", color = "grey40") +
-        ggplot2::geom_hline(ggplot2::aes(yintercept = log(Cstar_at_alpha),
-                                         linetype = paste0("C*(alpha) = ",
-                                                           signif(Cstar_at_alpha, 4))),
-                            color = "red") +
-        ggplot2::scale_linetype_manual(name = NULL, values = "dashed") +
-        ggplot2::coord_cartesian(xlim = c(0, alpha), ylim = yr) +
-        ggplot2::scale_x_continuous(name = "p-value") +
-        ggplot2::scale_y_continuous(name = "ln(eJAB01)", trans = ytrans, breaks = ybreaks) +
-        ggplot2::labs(title = paste0("ln(eJAB01) vs p-value  (alpha = ", alpha, ")")) +
-        jaspGraphs::geom_rangeframe() +
-        jaspGraphs::themeJaspRaw() +
-        ggplot2::theme(legend.position = c(0.98, 0.02),
-                       legend.justification = c(1, 0),
-                       legend.background = ggplot2::element_rect(
-                         fill = scales::alpha("white", 0.85), color = "grey70"),
-                       legend.key = ggplot2::element_rect(fill = NA),
-                       legend.margin = ggplot2::margin(2, 4, 2, 4))
-
-      dataPlot <- createJaspPlot(plot = p4,
-                                  title = gettext("Data Summary: ln(eJAB01) vs pValue"),
-                                  width = 600, height = 400)
-    } else {
-      dataPlot <- createJaspPlot(title = gettext("Data Summary: ln(eJAB01) vs pValue"),
-                                  width = 600, height = 400)
-      dataPlot$setError(gettext("No data available for plotting."))
+        zIndexPlot <- createJaspPlot(plot = pz2, title = zIndexTitle,
+                                     width = 600, height = 400)
+      } else {
+        zIndexPlot <- createJaspPlot(title = zIndexTitle, width = 600, height = 400)
+        zIndexPlot$setError(gettext("No candidate Type I errors detected; cannot produce index plot."))
+      }
+      zIndexPlot$dependOn(allDeps)
+      jaspResults[["zIndexPlot"]] <- zIndexPlot
     }
-    dataPlot$dependOn(allDeps)
-    jaspResults[["dataSummaryPlot"]] <- dataPlot
   }
 }

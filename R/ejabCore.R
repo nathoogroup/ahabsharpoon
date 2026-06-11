@@ -143,7 +143,7 @@ estimate_Cstar <- function(p, ejab, up = 0.05,
 #' @return Integer vector of indices of candidate T1Es
 #' @keywords internal
 detect_type1 <- function(p, ejab, alpha, Cstar) {
-  which(p < alpha & ejab > Cstar)
+  which(p <= alpha & ejab > Cstar)
 }
 
 
