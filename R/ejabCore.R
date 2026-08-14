@@ -6,9 +6,10 @@
 # the JASP module produces exactly the same numerical results as the R package.
 # Only routines actually called by the JASP analysis layer are included
 # (ejab01, compute_xi, objective_C, estimate_Cstar, detect_type1, diagnostic_U);
-# the upstream plotting and pipeline helpers (calibration_plot,
-# diagnostic_qqplot, ejab_pipeline, estimate_Cstar_alpha) are deliberately
-# omitted because the JASP layer reimplements those steps with ggplot2.
+# the upstream plotting and pipeline helpers (calibration_curve,
+# diagnostic_Z, diagnostic_qqnorm, diagnostic_index, ejab_pipeline,
+# estimate_Cstar_alpha) are deliberately omitted because the JASP layer
+# reimplements those steps with ggplot2 (Z = qnorm(diagnostic_U(...))).
 #
 # All routines are marked internal (no @export) and live in the module's
 # namespace; do not call them from user code.
@@ -64,8 +65,9 @@ compute_xi <- function(p_sub, ejab_sub, p_unique, C) {
 #' @return Scalar objective function value
 #' @keywords internal
 objective_C <- function(C, p, ejab, up) {
-  # Filter to p < up (strict; exclude p == up to avoid boundary clumping)
-  idx <- p < up
+  # Filter to the calibration window p <= up (inclusive, matching the theory:
+  # the left-tail uniformity assumption conditions on p <= u_p)
+  idx <- p <= up
   p_sub <- p[idx]
   ejab_sub <- ejab[idx]
   N <- length(p_sub)
@@ -107,12 +109,12 @@ objective_C <- function(C, p, ejab, up) {
 #'
 #' @param p Numeric vector of p-values
 #' @param ejab Numeric vector of eJAB01 values
-#' @param up Upper bound (default 0.05)
+#' @param up Upper bound (default 0.10, matching the JASP module and the paper)
 #' @param grid_range Length-2 numeric vector specifying the grid bounds
 #' @param grid_n Number of grid points (default 200)
 #' @return A list with components Cstar, objective, all_objectives, grid.
 #' @keywords internal
-estimate_Cstar <- function(p, ejab, up = 0.05,
+estimate_Cstar <- function(p, ejab, up = 0.10,
                             grid_range = c(0, 3), grid_n = 200) {
   if (grid_range[1] == grid_range[2]) {
     grid <- grid_range[1]

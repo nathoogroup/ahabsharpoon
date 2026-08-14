@@ -48,12 +48,12 @@ Form
   {
     title: qsTr("Significance Level & Left Tail Uniformity Cutoff")
     DoubleField { name: "alpha"; label: qsTr("α");  defaultValue: 0.05; max: 1; info: qsTr("The significance level for declaring a result statistically significant. Results with p ≤ α are considered significant. Default is 0.05.") }
-    DoubleField { name: "up";    label: qsTr("up"); defaultValue: 0.1;  max: 1; info: qsTr("The upper p-value cutoff defining the left-tail region used for calibration. Only results with p ≤ up are used to estimate C\\*(α). This restricts calibration to the region where Type I errors are plausible. Default is 0.1.") }
+    DoubleField { name: "up";    label: qsTr("uₚ"); defaultValue: 0.1;  max: 1; info: qsTr("The upper p-value cutoff defining the left-tail region used for calibration. Only results with p ≤ uₚ are used to estimate C\\*(α). This restricts calibration to the region where Type I errors are plausible. Default is 0.1.") }
   }
 
   Group
   {
-    title: qsTr("C∗(α) Grid Search")
+    title: qsTr("C<sup>*</sup>(α) Grid Search")
     DoubleField { name: "lowerBound"; label: qsTr("Lower Bound"); defaultValue: 0;   max: 1; info: qsTr("The lower end of the grid over which C\\* is searched. Default is 0.") }
     DoubleField { name: "upperBound"; label: qsTr("Upper Bound"); defaultValue: 3.0; max: 3; info: qsTr("The upper end of the grid over which C\\* is searched. Default is 3.") }
     Slider

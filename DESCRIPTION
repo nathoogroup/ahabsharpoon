@@ -14,7 +14,7 @@ Description: JASP module for identifying candidate Type I errors in
     Bayes factor for each result, estimates a calibrated threshold C* via
     minimisation of an integrated squared deviation objective, and flags
     results where the p-value rejects the null while eJAB01 supports it.
-    Provides calibration, diagnostic QQ, and data summary plots.
+    Provides a calibration curve and Z-diagnostic plots (normal QQ-plot and index plot).
 License: GPL (>= 2)
 Encoding: UTF-8
 Imports:

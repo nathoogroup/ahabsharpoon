@@ -133,7 +133,7 @@ ejabAnalysis <- function(jaspResults, dataset, options) {
   # --- Calibration curve: observed contradiction proportion vs alpha ---
   if (isTRUE(options$showCalibrationPlot) && is.null(jaspResults[["calibrationCurve"]])) {
     alpha_grid <- seq(0, up, length.out = 200)[-1]
-    N_cal <- sum(p_vals < up)
+    N_cal <- sum(p_vals <= up)
     proportions <- vapply(alpha_grid, function(a)
       sum(p_vals <= a & ejab_vals > Cstar_at_alpha) / N_cal, numeric(1))
     keep <- alpha_grid <= alpha

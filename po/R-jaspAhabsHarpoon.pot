@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: jaspAhabsHarpoon 0.1\n"
-"POT-Creation-Date: 2026-05-05\n"
+"POT-Creation-Date: 2026-06-12\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,9 +27,6 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-msgid "C*(α) is the C* value corresponding to the selected α = %s"
-msgstr ""
-
 msgid "Candidate Type I Errors"
 msgstr ""
 
@@ -48,22 +45,37 @@ msgstr ""
 msgid "eJAB01"
 msgstr ""
 
+msgid "eJAB10"
+msgstr ""
+
+msgid "Z"
+msgstr ""
+
+msgid "Outside ±2"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
 msgid "No candidate Type I errors detected."
 msgstr ""
 
-msgid "Calibration Curve"
+msgid "Calibration Curve (α ≤ %s)"
 msgstr ""
 
-msgid "Diagnostic QQ-Plot"
+msgid "Z-Diagnostic Normal QQ-Plot (α = %s, C* = %s)"
 msgstr ""
 
 msgid "No candidate Type I errors detected; cannot produce QQ-plot."
 msgstr ""
 
-msgid "Data Summary: ln(eJAB01) vs pValue"
+msgid "Z-Diagnostic vs Index (α = %s)"
 msgstr ""
 
-msgid "No data available for plotting."
+msgid "No candidate Type I errors detected; cannot produce index plot."
 msgstr ""
 
 msgid "No usable rows after filtering. The analysis requires p in (0, 1), n > 1, and q >= 1, with no missing values in any assigned column."

@@ -10,7 +10,7 @@ context("eJAB Analysis (end-to-end, both bundled datasets)")
 #   options <- jaspTools::analysisOptions("ejabAnalysis")
 #   options[c("p","n","q","study_nums")] <- list("p","n","q","study_id")
 #   options$showCalibrationPlot   <- TRUE
-#   options$showDataSummaryPlot   <- TRUE
+#   options$showZDiagnostic       <- TRUE
 #   results <- jaspTools::runAnalysis("ejabAnalysis", "rpp_data.csv", options)
 #   jaspTools::makeTestsFromOptions("ejabAnalysis", "rpp_data.csv", options)
 
@@ -26,7 +26,7 @@ defaultOptions <- function() {
   options$upperBound          <- 3
   options$grid_size           <- 200
   options$showCalibrationPlot <- TRUE
-  options$showDataSummaryPlot <- TRUE
+  options$showZDiagnostic     <- TRUE
   options
 }
 
@@ -41,8 +41,8 @@ expect_analysis_runs <- function(dataset) {
   expect_true("summaryContainer"    %in% names(results[["results"]]))
   expect_true("candidatesContainer" %in% names(results[["results"]]))
   expect_true("calibrationCurve"    %in% names(results[["results"]]))
-  expect_true("qqPlot"              %in% names(results[["results"]]))
-  expect_true("dataSummaryPlot"     %in% names(results[["results"]]))
+  expect_true("zQqPlot"             %in% names(results[["results"]]))
+  expect_true("zIndexPlot"          %in% names(results[["results"]]))
 
   # Summary table has exactly one row
   summaryTable <- results[["results"]][["summaryContainer"]][["collection"]][["summaryContainer_table"]][["data"]]
